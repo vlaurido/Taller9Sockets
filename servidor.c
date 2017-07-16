@@ -38,6 +38,7 @@ int main( int argc, char *argv[]) {
 	FILE *fp;
 	char *host;
 	char buf[BUFLEN];
+	char fileName[80];
 	int puerto;
 	int sockfd;
 	int clfd;
@@ -66,7 +67,7 @@ int main( int argc, char *argv[]) {
 	printf("Nombre del host: %s\n", host);	//Mostramos nuestro nombre
 
 	//creamos el socket
-	sockfd = socket(((struct sockaddr*)&direccion_servidor)->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	//configuramos la direccion del socket
 	memset(&direccion_servidor, 0, sizeof(direccion_servidor));	//ponemos en 0 la estructura direccion_servidor
@@ -79,7 +80,7 @@ int main( int argc, char *argv[]) {
 	bind(sockfd, (struct sockaddr*)&direccion_servidor, sizeof(direccion_servidor));
 	inet_pton(AF_INET,argv[1],&direccion_servidor.sin_addr);
 	printf("Socket atado a la direccion %s\n", (char *)inet_ntoa(direccion_servidor.sin_addr));
-	listen(sockfd, 100);
+	listen(sockfd, 1000);
 
 	while(1){
 		clsize = sizeof(direccion_cliente);
@@ -96,18 +97,15 @@ int main( int argc, char *argv[]) {
 		direccion_cliente.sin_port = htons(puerto);
 		printf("Cliente conectado: %s\n",inet_ntoa(direccion_cliente.sin_addr));
 
-		if ((fp = fopen("archivoRecibido", "wb")) == NULL) { 		//llamamos al programa uptime con un pipe
-			sprintf( buf, "error: %s\n", strerror(errno)); 
-			send( clfd, buf, strlen( buf), 0); 
-		} 
-		else {
-			sendOk(sockfd);
-			while ((recibido = recv(sockfd,buf,BUFLEN,0)) > 0) {
-				printf("%s\n",buf);
-				fwrite(buf,sizeof(char),1,fp);
-			}
-			fclose(fp);
-		} 		
+		read(sockfd,fileName,sizeof(fileName));
+		printf("Nombre recibido:\n%s\n", fileName);
+		fp = fopen(fileName, "wb");
+		sendOk(sockfd);
+		while ((recibido = recv(sockfd,buf,BUFLEN,0)) > 0) {
+			printf("%s\n",buf);
+			fwrite(buf,sizeof(char),1,fp);
+		}
+		fclose(fp);
 	}
 	close(clfd);
 	close(sockfd);

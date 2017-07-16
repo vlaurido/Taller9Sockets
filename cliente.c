@@ -20,8 +20,14 @@
 #define BUFLEN 128 
 #define MAXSLEEP 64
 
+void sendFileName(int sockfd, char name[80]) {
+	printf("Nombre enviado: %s\n", name);
+	if (write(sockfd,name,sizeof(name)) == -1)
+		printf("Error al enviar la confirmacion\n");
+}
+
 int main( int argc, char *argv[]) {
-	struct sockaddr_in direccion_cliente;
+	struct sockaddr_in direccion_servidor;
 	int socksize;
 	int sockfd;
 	int puerto;
@@ -31,7 +37,7 @@ int main( int argc, char *argv[]) {
 	FILE *archivo;
 
 	if(argc == 1){
-		printf("Uso: ./cliente <archivo a enviar> <ip> <puerto>\n");
+		printf("Uso: ./cliente <ip> <puerto> <archivo a enviar> <nombre del archivo a guardar>");
 		exit(-1);
 	}
 
@@ -39,27 +45,26 @@ int main( int argc, char *argv[]) {
 		printf( "Por favor especificar un numero de puerto\n");
 	}
 
-	puerto = atoi(argv[3]);
+	puerto = atoi(argv[2]);
 
 	//abrimos el archivo
-	archivo = fopen(argv[1],"rb");
+	archivo = fopen(argv[3],"rb");
 	if (!archivo) {
 		printf("Error al abrir el archivo\n");
 		exit(-1);
 	}
 
 	//creamos el socket
-	sockfd = socket(((struct sockaddr*)&direccion_cliente)->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	//configuramos la direccion del socket
-	memset(&direccion_cliente, 0, sizeof(direccion_cliente));	//ponemos en 0 la estructura direccion_servidor
+	memset(&direccion_servidor, 0, sizeof(direccion_servidor));	//ponemos en 0 la estructura direccion_servidor
 
 	//llenamos los campos
-	direccion_cliente.sin_family = AF_INET;		//IPv4
-	direccion_cliente.sin_port = htons(puerto);		//Convertimos el numero de puerto al endianness de la red
-	//direccion_cliente.sin_addr.s_addr = inet_addr(argv[2]);	//Nos tratamos de conectar a esta direccion
-	res = inet_pton(AF_INET,argv[2],&direccion_cliente.sin_addr);
-	socksize = sizeof(direccion_cliente);
+	direccion_servidor.sin_family = AF_INET;		//IPv4
+	direccion_servidor.sin_port = htons(puerto);		//Convertimos el numero de puerto al endianness de la red
+	res = inet_pton(AF_INET,argv[1],&direccion_servidor.sin_addr);
+	socksize = sizeof(direccion_servidor);
 
 	if (res == 0) {
 		printf("El segundo argumento no contiene una direccion IP valida\n");
@@ -67,17 +72,18 @@ int main( int argc, char *argv[]) {
 		exit(-1);
 	}
 
-	if (connect(sockfd, (struct sockaddr *)&direccion_cliente, sizeof(direccion_cliente)) == -1) {
+	if (connect(sockfd, (struct sockaddr *)&direccion_servidor, sizeof(direccion_servidor)) == -1) {
 		printf("Error a la hora de conectarse con el cliente\n");
 		close(sockfd);
 		exit(-1);
 	}
 
 	//En este punto ya tenemos una conexión valida
-	printf("Se ha conectado con el servidor: %s\n", (char *)inet_ntoa(direccion_cliente.sin_addr));
+	printf("Se ha conectado con el servidor: %s\n", (char *)inet_ntoa(direccion_servidor.sin_addr));
 
 	while(!feof(archivo))  {
 		fread(buffer,sizeof(char),BUFLEN,archivo);
+		sendFileName(sockfd,argv[4]);
 		if (send(sockfd,buffer,BUFLEN,0) == -1)
 			printf("Error al enviar el archivo\n");
 	}
