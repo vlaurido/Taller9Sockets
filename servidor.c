@@ -26,7 +26,7 @@
 //Funcion para enviar un mensaje de confirmacion
 void sendOk(int sockfd) {
 	char mensaje[80] = "Archivo recibido";
-	printf("Confirmacion enviada\n");
+	printf("Confirmacion enviada:\n%s\n",mensaje);
 	if (write(sockfd,mensaje,sizeof(mensaje)) == -1)
 		printf("Error al enviar la confirmacion\n");
 }
@@ -97,9 +97,9 @@ int main( int argc, char *argv[]) {
 		direccion_cliente.sin_port = htons(puerto);
 		printf("Cliente conectado: %s\n",inet_ntoa(direccion_cliente.sin_addr));
 
-		read(sockfd,fileName,sizeof(fileName));
-		printf("Nombre recibido:\n%s\n", fileName);
-		fp = fopen(fileName, "wb");
+		/*read(sockfd,fileName,strlen(fileName));
+		printf("Nombre recibido:\n%s\n", fileName);*/
+		fp = fopen("archivo", "wb");
 		sendOk(sockfd);
 		while ((recibido = recv(sockfd,buf,BUFLEN,0)) > 0) {
 			printf("%s\n",buf);

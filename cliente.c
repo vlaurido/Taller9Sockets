@@ -22,7 +22,7 @@
 
 void sendFileName(int sockfd, char name[80]) {
 	printf("Nombre enviado: %s\n", name);
-	if (write(sockfd,name,sizeof(name)) == -1)
+	if (write(sockfd,name,strlen(name)) == -1)
 		printf("Error al enviar la confirmacion\n");
 }
 
@@ -36,13 +36,9 @@ int main( int argc, char *argv[]) {
 	char buffer[BUFLEN];
 	FILE *archivo;
 
-	if(argc == 1){
+	if(argc != 5){
 		printf("Uso: ./cliente <ip> <puerto> <archivo a enviar> <nombre del archivo a guardar>");
 		exit(-1);
-	}
-
-	if(argc != 4){
-		printf( "Por favor especificar un numero de puerto\n");
 	}
 
 	puerto = atoi(argv[2]);
@@ -83,7 +79,7 @@ int main( int argc, char *argv[]) {
 
 	while(!feof(archivo))  {
 		fread(buffer,sizeof(char),BUFLEN,archivo);
-		sendFileName(sockfd,argv[4]);
+		//sendFileName(sockfd,argv[4]);
 		if (send(sockfd,buffer,BUFLEN,0) == -1)
 			printf("Error al enviar el archivo\n");
 	}
