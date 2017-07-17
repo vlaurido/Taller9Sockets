@@ -16,43 +16,31 @@
 #include <arpa/inet.h>
 #include <sys/resource.h>
 
-#define BUFLEN 128 
+#define BUFLEN 128
 #define QLEN 10 
 
 #ifndef HOST_NAME_MAX 
 #define HOST_NAME_MAX 256 
-#endif	
-
-//Funcion para enviar un mensaje de confirmacion
-void sendOk(int sockfd) {
-	char mensaje[80] = "Archivo recibido";
-	printf("Confirmacion enviada:\n%s\n",mensaje);
-	if (write(sockfd,mensaje,sizeof(mensaje)) == -1)
-		printf("Error al enviar la confirmacion\n");
-}
+#endif
 
 //Main
 int main( int argc, char *argv[]) {
 	struct sockaddr_in direccion_servidor;
 	struct sockaddr_in direccion_cliente;
-	FILE *fp;
+	void *file = malloc(BUFLEN);
 	char *host;
-	char buf[BUFLEN];
-	char fileName[80];
+	char *buf = malloc(BUFLEN);
+	int f;
+	int fileSize;
 	int puerto;
 	int sockfd;
 	int clfd;
-	int clsize;
-	int recibido = -1;
+	unsigned int clsize;
 	int n;
 
-	if(argc == 1){
+	if(argc != 3){
 		printf("Uso: ./servidor <ip> <numero de puerto>\n");
 		exit(-1);
-	}
-
-	if(argc != 3){
-		printf( "Por favor especificar un numero de puerto\n");
 	}
 
 	puerto = atoi(argv[2]);
@@ -68,6 +56,10 @@ int main( int argc, char *argv[]) {
 
 	//creamos el socket
 	sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sockfd == -1) {
+		printf("Error al abrir el socket\n");
+		exit(-1);
+	}
 
 	//configuramos la direccion del socket
 	memset(&direccion_servidor, 0, sizeof(direccion_servidor));	//ponemos en 0 la estructura direccion_servidor
@@ -80,32 +72,50 @@ int main( int argc, char *argv[]) {
 	bind(sockfd, (struct sockaddr*)&direccion_servidor, sizeof(direccion_servidor));
 	inet_pton(AF_INET,argv[1],&direccion_servidor.sin_addr);
 	printf("Socket atado a la direccion %s\n", (char *)inet_ntoa(direccion_servidor.sin_addr));
-	listen(sockfd, 1000);
+	listen(sockfd, 100);
 
-	while(1){
-		clsize = sizeof(direccion_cliente);
+	memset(&direccion_cliente, 0, sizeof(direccion_cliente));
+	clsize = sizeof(direccion_cliente);
 
-		if ((clfd = accept(sockfd, 
-					(struct sockaddr *) &direccion_cliente,
-					&clsize)) < 0) { 		//Aceptamos una conexion
-			syslog( LOG_ERR, "ruptimed: accept error: %s", strerror( errno)); 	//si hay error la ponemos en la bitacora			
-			exit( 1); 
-		}
+	while(1) {
+		
+		printf("Antes del accept\n");
+		clfd = accept(sockfd,(struct sockaddr *)&direccion_cliente,&clsize);
 
 		//configuramos la direccion del cliente
-		direccion_cliente.sin_family = AF_INET;
-		direccion_cliente.sin_port = htons(puerto);
+		/*direccion_cliente.sin_family = AF_INET;
+		direccion_cliente.sin_port = htons(puerto);*/
+
+		recv(clfd,buf,BUFLEN,0);
+
 		printf("Cliente conectado: %s\n",inet_ntoa(direccion_cliente.sin_addr));
 
-		/*read(sockfd,fileName,strlen(fileName));
-		printf("Nombre recibido:\n%s\n", fileName);*/
-		fp = fopen("archivo", "wb");
-		sendOk(sockfd);
-		while ((recibido = recv(sockfd,buf,BUFLEN,0)) > 0) {
-			printf("%s\n",buf);
-			fwrite(buf,sizeof(char),1,fp);
+		f = open(buf, O_RDONLY);
+
+		if (f < 0) {
+			printf("Error abriendo el archivo\n");
+			char *mensaje = "Error abriendo el archivo\n";
+			send(clfd,mensaje,strlen(mensaje),0);
+			exit(-1);
+		} else {
+			fileSize = read(f,file,BUFLEN);
+			if (fileSize <= 0) {
+				printf("Error en la lectura del archivo\n");
+				char *mensaje = "Error con el archivo\n";
+				send(clfd,mensaje,strlen(mensaje),0);
+				exit(-1);
+			} else {
+				printf("El archivo se leyo correctamente\n");
+				if ((write(clfd,file,fileSize)) <= 0) {
+					printf("Error con el archivo\n");
+					char *mensaje = "Error en el envio del archivo\n";
+					send(clfd,mensaje,strlen(mensaje),0);
+					exit(-1);
+				}
+				else
+					printf("Archivo enviado correctamente\n");
+			}
 		}
-		fclose(fp);
 	}
 	close(clfd);
 	close(sockfd);

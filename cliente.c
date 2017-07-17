@@ -16,25 +16,17 @@
 #include <arpa/inet.h>
 #include <sys/resource.h>
 
+#define BUFLEN 128
 
-#define BUFLEN 128 
-#define MAXSLEEP 64
-
-void sendFileName(int sockfd, char name[80]) {
-	printf("Nombre enviado: %s\n", name);
-	if (write(sockfd,name,strlen(name)) == -1)
-		printf("Error al enviar la confirmacion\n");
-}
-
+//Main
 int main( int argc, char *argv[]) {
 	struct sockaddr_in direccion_servidor;
-	int socksize;
 	int sockfd;
 	int puerto;
 	int res;
-	char mensaje[80];
-	char buffer[BUFLEN];
-	FILE *archivo;
+	int f;
+	char *archivo;
+	void *buffer = malloc(BUFLEN);
 
 	if(argc != 5){
 		printf("Uso: ./cliente <ip> <puerto> <archivo a enviar> <nombre del archivo a guardar>");
@@ -43,15 +35,15 @@ int main( int argc, char *argv[]) {
 
 	puerto = atoi(argv[2]);
 
-	//abrimos el archivo
-	archivo = fopen(argv[3],"rb");
-	if (!archivo) {
-		printf("Error al abrir el archivo\n");
-		exit(-1);
-	}
+	//tomamos el archivo
+	archivo = argv[3];
 
 	//creamos el socket
 	sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sockfd == -1) {
+		printf("Error al abrir el socket\n");
+		exit(-1);
+	}
 
 	//configuramos la direccion del socket
 	memset(&direccion_servidor, 0, sizeof(direccion_servidor));	//ponemos en 0 la estructura direccion_servidor
@@ -59,8 +51,9 @@ int main( int argc, char *argv[]) {
 	//llenamos los campos
 	direccion_servidor.sin_family = AF_INET;		//IPv4
 	direccion_servidor.sin_port = htons(puerto);		//Convertimos el numero de puerto al endianness de la red
+	direccion_servidor.sin_addr.s_addr = inet_addr(argv[1]);
+
 	res = inet_pton(AF_INET,argv[1],&direccion_servidor.sin_addr);
-	socksize = sizeof(direccion_servidor);
 
 	if (res == 0) {
 		printf("El segundo argumento no contiene una direccion IP valida\n");
@@ -69,7 +62,7 @@ int main( int argc, char *argv[]) {
 	}
 
 	if (connect(sockfd, (struct sockaddr *)&direccion_servidor, sizeof(direccion_servidor)) == -1) {
-		printf("Error a la hora de conectarse con el cliente\n");
+		printf("Error a la hora de conectarse con el servidor\n");
 		close(sockfd);
 		exit(-1);
 	}
@@ -77,17 +70,22 @@ int main( int argc, char *argv[]) {
 	//En este punto ya tenemos una conexión valida
 	printf("Se ha conectado con el servidor: %s\n", (char *)inet_ntoa(direccion_servidor.sin_addr));
 
-	while(!feof(archivo))  {
-		fread(buffer,sizeof(char),BUFLEN,archivo);
-		//sendFileName(sockfd,argv[4]);
-		if (send(sockfd,buffer,BUFLEN,0) == -1)
-			printf("Error al enviar el archivo\n");
+	send(sockfd,archivo,strlen(archivo),0);
+	printf("Archivo enviado al servidor\n");
+
+	//recibimos la respuesta del servidor
+	recv(sockfd,buffer,BUFLEN,0);
+
+	f = creat(argv[4],S_IRWXU);
+	if (f < 0) {
+		printf("Error recibiendo el archivo\n");
+		exit(-1);
+	} else {
+		if ((write(f,buffer,sizeof(buffer))) < 0) {
+			printf("Error al guardar\n");
+			exit(-1);
+		} else 
+			printf("El archivo ha sido descargado correctamente\n");
 	}
-
-	read(sockfd,mensaje,sizeof(mensaje));
-	printf("Confirmacion recibida:\n%s\n", mensaje);
-
 	return 0; 
 }
-
-
