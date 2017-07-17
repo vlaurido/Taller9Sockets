@@ -79,7 +79,6 @@ int main( int argc, char *argv[]) {
 
 	while(1) {
 		
-		printf("Antes del accept\n");
 		clfd = accept(sockfd,(struct sockaddr *)&direccion_cliente,&clsize);
 
 		//configuramos la direccion del cliente
