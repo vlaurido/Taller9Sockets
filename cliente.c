@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <sys/resource.h>
 
-#define BUFLEN 128
+#define BUFLEN 1000000
 
 //Main
 int main( int argc, char *argv[]) {
@@ -26,7 +26,7 @@ int main( int argc, char *argv[]) {
 	int res;
 	int f;
 	char *archivo;
-	void *buffer = malloc(BUFLEN);
+	char *buffer = malloc(BUFLEN*sizeof(char));
 
 	if(argc != 5){
 		printf("Uso: ./cliente <ip> <puerto> <archivo a enviar> <nombre del archivo a guardar>");
@@ -74,14 +74,15 @@ int main( int argc, char *argv[]) {
 	printf("Archivo enviado al servidor\n");
 
 	//recibimos la respuesta del servidor
-	recv(sockfd,buffer,BUFLEN,0);
+	int rec = recv(sockfd,buffer,BUFLEN,0);
+	printf("%d\n",rec);
 
 	f = creat(argv[4],S_IRWXU);
 	if (f < 0) {
 		printf("Error recibiendo el archivo\n");
 		exit(-1);
 	} else {
-		if ((write(f,buffer,sizeof(buffer))) < 0) {
+		if ((write(f,buffer,rec)) < 0) {
 			printf("Error al guardar\n");
 			exit(-1);
 		} else 

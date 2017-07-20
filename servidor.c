@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <sys/resource.h>
 
-#define BUFLEN 128
+#define BUFLEN 1000000
 #define QLEN 10 
 
 #ifndef HOST_NAME_MAX 
@@ -31,7 +31,7 @@ int main( int argc, char *argv[]) {
 	char *host;
 	char *buf = malloc(BUFLEN);
 	int f;
-	int fileSize;
+	int size;
 	int puerto;
 	int sockfd;
 	int clfd;
@@ -97,15 +97,16 @@ int main( int argc, char *argv[]) {
 			send(clfd,mensaje,strlen(mensaje),0);
 			exit(-1);
 		} else {
-			fileSize = read(f,file,BUFLEN);
-			if (fileSize <= 0) {
+			size = read(f,file,BUFLEN);
+			printf("size: %d\n", size);
+			if (size <= 0) {
 				printf("Error en la lectura del archivo\n");
 				char *mensaje = "Error con el archivo\n";
 				send(clfd,mensaje,strlen(mensaje),0);
 				exit(-1);
 			} else {
 				printf("El archivo se leyo correctamente\n");
-				if ((write(clfd,file,fileSize)) <= 0) {
+				if ((write(clfd,file,size)) <= 0) {
 					printf("Error con el archivo\n");
 					char *mensaje = "Error en el envio del archivo\n";
 					send(clfd,mensaje,strlen(mensaje),0);
