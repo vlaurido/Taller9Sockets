@@ -95,41 +95,49 @@ int main( int argc, char *argv[]) {
 	while(1) {
 		
 		clfd = accept(sockfd,(struct sockaddr *)&direccion_cliente,&clsize);
+		
+		int pd = fork();
 
-		recv(clfd,buf,BUFLEN,0);
+		if (pd==0){
 
-		printf("Cliente conectado: %s\n",inet_ntoa(direccion_cliente.sin_addr));
+			recv(clfd,buf,BUFLEN,0);
 
-		f = open(buf, O_RDONLY);
+			printf("Cliente conectado: %s\n",inet_ntoa(direccion_cliente.sin_addr));
 
-		if (f < 0) {
-			printf("Error abriendo el archivo\n");
-			char *mensaje = "Error abriendo el archivo\n";
-			send(clfd,mensaje,strlen(mensaje),0);
-			exit(-1);
-		} else {
-			size = read(f,file,BUFLEN);
-			printf("size: %d\n", size);
-			if (size <= 0) {
-				printf("Error en la lectura del archivo\n");
-				char *mensaje = "Error con el archivo\n";
+			f = open(buf, O_RDONLY);
+
+			if (f < 0) {
+				printf("Error abriendo el archivo\n");
+				char *mensaje = "Error abriendo el archivo\n";
 				send(clfd,mensaje,strlen(mensaje),0);
 				exit(-1);
 			} else {
-				printf("El archivo se leyo correctamente\n");
-				if ((write(clfd,file,size)) <= 0) {
-					printf("Error con el archivo\n");
-					char *mensaje = "Error en el envio del archivo\n";
+				size = read(f,file,BUFLEN);
+				printf("size: %d\n", size);
+				if (size <= 0) {
+					printf("Error en la lectura del archivo\n");
+					char *mensaje = "Error con el archivo\n";
 					send(clfd,mensaje,strlen(mensaje),0);
 					exit(-1);
+				} else {
+					printf("El archivo se leyo correctamente\n");
+					if ((write(clfd,file,size)) <= 0) {
+						printf("Error con el archivo\n");
+						char *mensaje = "Error en el envio del archivo\n";
+						send(clfd,mensaje,strlen(mensaje),0);
+						exit(-1);
+					}
+					else
+						printf("Archivo enviado correctamente\n");
 				}
-				else
-					printf("Archivo enviado correctamente\n");
 			}
+			close(clfd);
+			close(sockfd);
+		}
+		else{
+			close(clfd);
+			continue;
 		}
 	}
-	
-	//close(clfd);
-	//close(sockfd);
 	return 0;
 }
