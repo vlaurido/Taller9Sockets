@@ -23,19 +23,9 @@
 #define HOST_NAME_MAX 256 
 #endif
 
-int sockfd;
-int clfd;
 
-//Funcion llamada por signal
-void salida(int sig) {
-	if (sig == SIGTSTP) {
-		close(sockfd);
-		close(clfd);
-		printf("\tLos sockets han sido cerrados\n");
-		printf("\tUsted ha elegido terminar el proceso\n");
-		exit(0);
-	}
-}
+
+
 
 //Main
 int main( int argc, char *argv[]) {
@@ -44,6 +34,8 @@ int main( int argc, char *argv[]) {
 	void *file = malloc(BUFLEN);
 	char *host;
 	char *buf = malloc(BUFLEN);
+	int sockfd;
+	int clfd;
 	int f;
 	int size;
 	int puerto;
@@ -88,9 +80,6 @@ int main( int argc, char *argv[]) {
 
 	memset(&direccion_cliente, 0, sizeof(direccion_cliente));
 	clsize = sizeof(direccion_cliente);
-
-	//metodo que escucha la senal de ^Z
-	signal(SIGTSTP,salida);
 
 	while(1) {
 		
