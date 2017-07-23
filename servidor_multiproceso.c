@@ -23,6 +23,10 @@
 #define HOST_NAME_MAX 256 
 #endif
 
+
+
+
+
 //Main
 int main( int argc, char *argv[]) {
 	struct sockaddr_in direccion_servidor;
@@ -30,11 +34,11 @@ int main( int argc, char *argv[]) {
 	void *file = malloc(BUFLEN);
 	char *host;
 	char *buf = malloc(BUFLEN);
+	int sockfd;
+	int clfd;
 	int f;
 	int size;
 	int puerto;
-	int sockfd;
-	int clfd;
 	unsigned int clsize;
 	int n;
 
@@ -84,10 +88,6 @@ int main( int argc, char *argv[]) {
 		int pd = fork();
 
 		if (pd==0){
-
-			//configuramos la direccion del cliente
-			/*direccion_cliente.sin_family = AF_INET;
-			direccion_cliente.sin_port = htons(puerto);*/
 
 			recv(clfd,buf,BUFLEN,0);
 
