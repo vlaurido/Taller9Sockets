@@ -23,6 +23,20 @@
 #define HOST_NAME_MAX 256 
 #endif
 
+int sockfd;
+int clfd;
+
+//Funcion llamada por signal
+void salida(int sig) {
+	if (sig == SIGTSTP) {
+		close(sockfd);
+		close(clfd);
+		printf("\tLos sockets han sido cerrados\n");
+		printf("\tUsted ha elegido terminar el proceso\n");
+		exit(0);
+	}
+}
+
 //Main
 int main( int argc, char *argv[]) {
 	struct sockaddr_in direccion_servidor;
@@ -33,8 +47,6 @@ int main( int argc, char *argv[]) {
 	int f;
 	int size;
 	int puerto;
-	int sockfd;
-	int clfd;
 	unsigned int clsize;
 	int n;
 
@@ -77,13 +89,12 @@ int main( int argc, char *argv[]) {
 	memset(&direccion_cliente, 0, sizeof(direccion_cliente));
 	clsize = sizeof(direccion_cliente);
 
+	//metodo que escucha la senal de ^Z
+	signal(SIGTSTP,salida);
+
 	while(1) {
 		
 		clfd = accept(sockfd,(struct sockaddr *)&direccion_cliente,&clsize);
-
-		//configuramos la direccion del cliente
-		/*direccion_cliente.sin_family = AF_INET;
-		direccion_cliente.sin_port = htons(puerto);*/
 
 		recv(clfd,buf,BUFLEN,0);
 
@@ -117,7 +128,8 @@ int main( int argc, char *argv[]) {
 			}
 		}
 	}
-	close(clfd);
-	close(sockfd);
+	
+	//close(clfd);
+	//close(sockfd);
 	return 0;
 }
